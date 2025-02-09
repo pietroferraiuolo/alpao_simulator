@@ -1,6 +1,6 @@
 import numpy as np
-import config_loader as cl
 from matplotlib import pyplot as plt
+import alpao_simulator.ground.config_loader as cl
 
 def getDmCoordinates(Nacts: int):
     """
@@ -60,6 +60,23 @@ def createMask(nActs: int, shape=(512, 512)):
     y, x = np.ogrid[:height, :width]
     mask = (x - cx) ** 2 + (y - cy) ** 2 >= radius ** 2
     return mask
+
+def pixel_scale(nacts:int):
+    """
+    Returns the pixel scale of the DM.
+    
+    Parameters
+    ----------
+    nacts : int
+        Number of actuators in the DM.
+    
+    Returns
+    -------
+    float
+        Pixel scale of the DM.
+    """
+    dm = cl.load_dm_configuration(nacts)
+    return float(dm['pixel_scale'])
 
 def plotDmCoordinates(Nacts: int, amplitude=None):
     """

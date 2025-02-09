@@ -55,7 +55,7 @@ Example
 """
 
 import numpy as np
-import _geo
+import alpao_simulator.ground._geo as _geo
 import math
 
 fac = math.factorial

@@ -1,11 +1,11 @@
 import os
-import geometry
 import numpy as np
-import zernike as zern
-import folder_paths as fp
-import config_loader as cl
 from tps import ThinPlateSpline
 from abc import ABC, abstractmethod
+import alpao_simulator.ground.zernike as zern
+import alpao_simulator.folder_paths as fp
+import alpao_simulator.ground.osutils as osu
+import alpao_simulator.ground.geometry as geometry
 
 
 class BaseDeformableMirror(ABC):
@@ -17,7 +17,7 @@ class BaseDeformableMirror(ABC):
         Initializes the base deformable mirror with the number of actuators.
         """
         self.nActs = nActs
-        self._dm = cl.load_dm_configuration(self.nActs)
+        self._pxScale = geometry.pixel_scale(self.nActs)
         self.coords = geometry.getDmCoordinates(self.nActs)
         self.mask = geometry.createMask(self.nActs)
         self._iffCube = None
@@ -70,7 +70,7 @@ class BaseDeformableMirror(ABC):
             self._simulate_Zonal_Iff_Acquisition()
         else:
             print(f"Loaded influence functions for DM {self.nActs}")
-            self._iffCube = np.ma.masked_array(cl.load_fits(fp.INFLUENCE_FUNCTIONS_FILE(self.nActs)))
+            self._iffCube = np.ma.masked_array(osu.load_fits(fp.INFLUENCE_FUNCTIONS_FILE(self.nActs)))
         self._create_int_and_rec_matrices()
         self._create_zernike_matrix()
 
@@ -83,10 +83,10 @@ class BaseDeformableMirror(ABC):
             n_zern = self.nActs
             print("Computing Zernike matrix...")
             self.ZM = zern.generate_zernike_matrix(n_zern, self.mask)
-            cl.save_fits(fp.ZERNMAT_FILE(self.nActs), self.ZM)
+            osu.save_fits(fp.ZERNMAT_FILE(self.nActs), self.ZM)
         else:
             print(f"Loaded Zernike matrix for DM {self.nActs}")
-            self.ZM = cl.load_fits(fp.ZERNMAT_FILE(self.nActs))
+            self.ZM = osu.load_fits(fp.ZERNMAT_FILE(self.nActs))
 
 
     def _create_int_and_rec_matrices(self):
@@ -101,17 +101,17 @@ class BaseDeformableMirror(ABC):
                     for i in range(self._iffCube.shape[2])
                 ]
             )
-            cl.save_fits(fp.INTMAT_FILE(self.nActs), self.IM)
+            osu.save_fits(fp.INTMAT_FILE(self.nActs), self.IM)
         else:
             print(f"Loaded interaction matrix for DM {self.nActs}")
-            self.IM = cl.load_fits(fp.INTMAT_FILE(self.nActs))
+            self.IM = osu.load_fits(fp.INTMAT_FILE(self.nActs))
         if not os.path.exists(fp.RECMAT_FILE(self.nActs)):
             print("Computing reconstruction matrix...")
             self.RM = np.linalg.pinv(self.IM)
-            cl.save_fits(fp.RECMAT_FILE(self.nActs), self.RM)
+            osu.save_fits(fp.RECMAT_FILE(self.nActs), self.RM)
         else:
             print(f"Loaded reconstruction matrix for DM {self.nActs}")
-            self.RM = cl.load_fits(fp.RECMAT_FILE(self.nActs))
+            self.RM = osu.load_fits(fp.RECMAT_FILE(self.nActs))
 
 
 
@@ -141,7 +141,7 @@ class BaseDeformableMirror(ABC):
         # Note: self.coords is of shape (2, nActs) where first row is x and second is y.
         act_coords = self.coords.T  # shape: (n_acts, 2)
         # Load pixel scale from the dm configuration.
-        pix_scale = float(self._dm['pixel_scale'])
+        pix_scale = float(self._pxScale)
         act_pix_coords = np.zeros((n_acts, 2), dtype=int)
         # Following the provided convention:
         # - The first column uses the y-coordinate
@@ -165,8 +165,6 @@ class BaseDeformableMirror(ABC):
         cube_mask = np.tile(self.mask, n_acts).reshape(img_cube.shape, order='F')
         cube = np.ma.masked_array(img_cube, mask=cube_mask)
         # Save the cube to a FITS file.
-        fits_file = os.path.join(
-            fp.DATA_ROOT_FOLDER, 'influence_functions', f'dm{self.nActs}_iffCube.fits'
-            )
-        cl.save_fits(fits_file, cube)
+        fits_file = fp.INFLUENCE_FUNCTIONS_FILE(self.nActs)
+        osu.save_fits(fits_file, cube)
         self._iffCube = cube
