@@ -1,0 +1,6 @@
+Steps:
+[V] Define the mirror's and actuators geometry 
+[V] Create mirror's mask 
+[V] Generate the zonal InfluenceFunction (IFF) cube (using ThinPlateSpline), and from it the
+    Interaction Matrix (INTMAT) and its inverse, the Reconstraction Matrix (RECMAT)
+- Generate the Zernike cube projected on the mask and normalized in it to 1
