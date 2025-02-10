@@ -1,0 +1,2 @@
+include README.md
+include alpao_simulator/data/sysconfig/configuration.ini

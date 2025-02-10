@@ -1,0 +1,6 @@
+numpy
+astropy
+matplotlib
+scikit-image
+configparser
+thin-plate-spline
