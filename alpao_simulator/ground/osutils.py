@@ -35,12 +35,14 @@ def save_fits(filepath, data):
     data : np.array
         Data to be saved.
     """
-    hdul = fits.HDUList()
-    hdul.append(fits.PrimaryHDU(data=data))
-    hdul.writeto(filepath, overwrite=True)
-    if hasattr(data, 'mask'):
-        hdul.append(fits.ImageHDU(data=data.mask.astype(int)))
-        hdul.writeto(filepath, overwrite=True)
+    if isinstance(data, masked_array):
+        fits.writeto(filepath, data.data, overwrite=True)
+        if hasattr(data, 'mask'):
+            fits.append(filepath, data.mask.astype(int))
+    else:
+        fits.writeto(filepath, data, overwrite=True)
+        
+
 
 def load_data_path(config_file):
     """

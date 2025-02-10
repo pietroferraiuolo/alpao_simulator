@@ -1,4 +1,5 @@
-data/influence_functions/*
+alpao_simulator/data/
+alpao_simulator/sysconf/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
