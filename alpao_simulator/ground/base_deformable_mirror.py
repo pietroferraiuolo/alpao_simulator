@@ -18,8 +18,9 @@ class BaseDeformableMirror(ABC):
         """
         self.nActs = nActs
         self._pxScale = geometry.pixel_scale(self.nActs)
-        self.coords = geometry.getDmCoordinates(self.nActs)
+        self.actCoords = geometry.getDmCoordinates(self.nActs)
         self.mask = geometry.createMask(self.nActs)
+        self._scaledActCoords = self._scaleActCoords()
         self._iffCube = None
         self.IM = None
         self.ZM = None
@@ -139,13 +140,8 @@ class BaseDeformableMirror(ABC):
         pix_coords[:, 1] = np.tile(np.arange(max_y), max_x)
         # Convert actuator coordinates to pixel coordinates.
         # Note: self.coords is of shape (2, nActs) where first row is x and second is y.
-        act_coords = self.coords.T  # shape: (n_acts, 2)
-        # Load pixel scale from the dm configuration.
-        pix_scale = float(self._pxScale)
+        act_coords = self.actCoords.T  # shape: (n_acts, 2)
         act_pix_coords = np.zeros((n_acts, 2), dtype=int)
-        # Following the provided convention:
-        # - The first column uses the y-coordinate
-        # - The second column uses the x-coordinate
         act_pix_coords[:, 0] = (act_coords[:, 1] / np.max(act_coords[:, 1])*max_x).astype(int)
         act_pix_coords[:, 1] = (act_coords[:, 0] / np.max(act_coords[:, 0])*max_y).astype(int)  # corrected to use act_coords[:, 0]
         # Prepare an image cube to store the influence functions.
@@ -168,3 +164,14 @@ class BaseDeformableMirror(ABC):
         fits_file = fp.INFLUENCE_FUNCTIONS_FILE(self.nActs)
         osu.save_fits(fits_file, cube)
         self._iffCube = cube
+
+    def _scaleActCoords(self):
+        """
+        Scales the actuator coordinates to the mirror's pixel scale.
+        """
+        max_x, max_y = self.mask.shape
+        act_coords = self.actCoords.T  # shape: (n_acts, 2)
+        act_pix_coords = np.zeros((self.nActs,2), dtype=int)
+        act_pix_coords[:, 0] = (act_coords[:, 1] / np.max(act_coords[:, 1])*max_x).astype(int)
+        act_pix_coords[:, 1] = (act_coords[:, 0] / np.max(act_coords[:, 0])*max_y).astype(int)
+        return act_pix_coords

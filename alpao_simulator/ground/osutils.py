@@ -1,3 +1,4 @@
+import time
 from astropy.io import fits
 from numpy.ma import masked_array
 from configparser import ConfigParser
@@ -42,7 +43,16 @@ def save_fits(filepath, data):
     else:
         fits.writeto(filepath, data, overwrite=True)
         
-
+def newtn():
+    """
+    Returns a timestamp in a string of the format `YYYYMMDD_HHMMSS`.
+    
+    Returns
+    -------
+    str
+        Current time in a string format.
+    """
+    return time.strftime("%Y%m%d_%H%M%S")
 
 def load_data_path(config_file):
     """

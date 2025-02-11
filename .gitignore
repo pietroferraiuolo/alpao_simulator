@@ -1,5 +1,5 @@
 alpao_simulator/data/
-alpao_simulator/sysconf/
+alpao_simulator/sysconf/configuration.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

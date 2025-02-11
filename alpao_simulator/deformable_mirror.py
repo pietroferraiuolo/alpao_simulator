@@ -1,10 +1,15 @@
+import os
 import numpy as np
+from matplotlib import pyplot as plt
+from alpao_simulator import folder_paths as fp
+from alpao_simulator.ground import osutils as osu
 from alpao_simulator.ground.base_deformable_mirror import BaseDeformableMirror
 
 class AlpaoDm(BaseDeformableMirror):
 
     def __init__(self, nActs):
         super(AlpaoDm, self).__init__(nActs)
+        self.cmdHistory = None
         self._shape = np.ma.masked_array(self.mask * 0, mask=self.mask, dtype=float)
         self._idx = np.where(self.mask == 0)
         self._actPos = np.zeros(self.nActs)
@@ -35,17 +40,70 @@ class AlpaoDm(BaseDeformableMirror):
         """
         return self._actPos
     
-    def acquire_phasemap(self):
+    def uploadCmdHistory(self, cmdhist):
         """
-        Acquires the phase map of the deformable mirror.
+        Upload the command history to the deformable mirror memory.
+        Ready to run the `runCmdHistory` method.
+        """
+        self.cmdHistory = cmdhist
+
+    def runCmdHistory(self, interf=None, rebin:int=1, save:bool=False):
+        """
+        Runs the command history on the deformable mirror.
         
+        Parameters
+        ----------
+        interf : Interferometer
+            Interferometer object to acquire the phase map.
+        rebin : int
+            Rebinning factor for the acquired phase map.
+        save : bool
+            If True, saves the acquired phase maps.
+            
+        Returns
+        -------
+        tn :str
+            Timestamp of the data saved.
+        """
+        if self.cmdHistory is None:
+            raise Exception("No Command History to run!")
+        else:
+            tn = osu.newtn()
+            print(f"{tn} - {self.cmdHistory.shape[-1]} images to go.")
+            datafold = os.path.join(fp.OPD_IMAGES_FOLDER, tn)
+            if not os.path.exists(datafold):
+                os.mkdir(datafold)
+            for i,cmd in enumerate(self.cmdHistory.T):
+                print(f"{i}/{self.cmdHistory.shape[-1]}", end="\r", flush=True)
+                self.set_shape(cmd)
+                if interf is not None:
+                    img = interf.acquire_phasemap(rebin=rebin)
+                    path = os.path.join(datafold, f"image_{i:05d}.fits")
+                    osu.save_phasemap(path, img)
+        self.set_shape(np.zeros(self.nActs))
+        return tn
+
+    def visualize_shape(self, cmd):
+        """
+        Visualizes the command amplitudes on the mirror's actuators.
+
+        Parameters
+        ----------
+        cmd : np.array
+            Command to be visualized on the mirror's actuators.
+
         Returns
         -------
         np.array
-            Phase map of the deformable mirror.
+            Processed shape based on the command.
         """
-        image = np.ma.masked_array(self._shape, mask=self.mask)
-        return image
+        plt.figure(figsize=(7, 6))
+        plt.scatter(self._scaledActCoords[:,0], self._scaledActCoords[:,1], c=cmd)
+        plt.xlabel(r"$x$ $[px]$")
+        plt.ylabel(r"$y$ $[px]$")
+        plt.title(f"DM {self.nActs} Actuator's Coordinates")
+        plt.colorbar()
+        plt.show()
 
     def _mirror_command(self, cmd, diff, modal):
         """
