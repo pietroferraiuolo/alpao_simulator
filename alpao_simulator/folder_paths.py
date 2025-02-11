@@ -1,5 +1,5 @@
 import os
-from m4.configuration import update_folder_paths as ufp
+from m4.configuration import update_folder_paths as ufp # type: ignore
 from alpao_simulator.ground.osutils import load_data_path
 
 fn = ufp.folders
