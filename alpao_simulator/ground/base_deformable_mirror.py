@@ -146,8 +146,8 @@ class BaseDeformableMirror(ABC):
         # Following the provided convention:
         # - The first column uses the y-coordinate
         # - The second column uses the x-coordinate
-        act_pix_coords[:, 0] = (act_coords[:, 0] / np.max(act_coords[:, 0])*max_x).astype(int)
-        act_pix_coords[:, 1] = (act_coords[:, 1] / np.max(act_coords[:, 1])*max_y).astype(int)  # corrected to use act_coords[:, 0]
+        act_pix_coords[:, 0] = (act_coords[:, 1] / np.max(act_coords[:, 1])*max_x).astype(int)
+        act_pix_coords[:, 1] = (act_coords[:, 0] / np.max(act_coords[:, 0])*max_y).astype(int)  # corrected to use act_coords[:, 0]
         # Prepare an image cube to store the influence functions.
         img_cube = np.zeros((max_x, max_y, n_acts))
         amps = np.ones(n_acts)

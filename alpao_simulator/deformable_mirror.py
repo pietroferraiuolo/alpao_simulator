@@ -22,7 +22,6 @@ class AlpaoDm(BaseDeformableMirror):
         differential : bool
             If True, the command is applied differentially.
         """
-        self._actPos = command
         self._mirror_command(command, differential, modal)
 
     def get_shape(self):
@@ -65,15 +64,11 @@ class AlpaoDm(BaseDeformableMirror):
         np.array
             Processed shape based on the command.
         """
-        cmd_amps = cmd
-        if modal: # convert modal to zonal
-            shape = np.matmul(self.ZM, cmd)
-            cmd_amps = np.matmul(self.RM, shape)
-        if diff:
-            cmd_amps = cmd_amps - self._actPos
-            self._actPos += cmd_amps
-        else:
-            self._actPos = cmd_amps
-        _cmd = cmd_amps - self._actPos if diff else cmd_amps
-        self._shape[self._idx] += np.dot(self.IM.T, _cmd)
-        
+        if modal:
+            mode_img = np.dot(self.ZM, cmd)
+            cmd = np.dot(mode_img, self.RM)
+        cmd_amp = cmd
+        if not diff:
+            cmd_amp = cmd - self._actPos
+        self._shape[self._idx] += np.dot(cmd_amp, self.IM)
+        self._actPos += cmd_amp

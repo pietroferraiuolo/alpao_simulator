@@ -11,7 +11,7 @@ def main():
         if op.exists(fp.INFLUENCE_FUNCTIONS_FILE(Nacts)):
             print(f"DM {Nacts} simulation already exists.")
             response = input(f"Would you like to overwrite it? (y/n) ")
-            if response.lower() != 'y':
+            if response != 'y':
                 continue
         dm = AlpaoDm(Nacts)
         print("")
