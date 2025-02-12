@@ -16,6 +16,7 @@ class BaseDeformableMirror(ABC):
         """
         Initializes the base deformable mirror with the number of actuators.
         """
+        self.mirrorModes = None
         self.nActs = nActs
         self._pxScale = geometry.pixel_scale(self.nActs)
         self.actCoords = geometry.getDmCoordinates(self.nActs)
