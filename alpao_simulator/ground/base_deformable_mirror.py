@@ -132,7 +132,7 @@ class BaseDeformableMirror(ABC):
             A masked cube of influence functions with shape (height, width, nActs).
         """
         # Get the number of actuators from the coordinates array.
-        n_acts = self.coords.shape[1]
+        n_acts = self.actCoords.shape[1]
         max_x, max_y = self.mask.shape
         # Create pixel grid coordinates.
         pix_coords = np.zeros((max_x * max_y, 2))
