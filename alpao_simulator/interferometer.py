@@ -6,7 +6,7 @@ class Interferometer:
 
     def __init__(self, dm):
         self._dm = dm
-        self.model = "4D AccuFiz"
+        self.model = "4DAccuFiz"
         self._lambda = 632.8e-9 # Wavelength of the light in meters
         self._fullWidth, self._fullHeight = self._readFullFrameSize()
 

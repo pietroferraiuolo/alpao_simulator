@@ -14,4 +14,7 @@ def main():
     print(f"Interferometer initialized: {interf.model}\n")
 
 if __name__ == "__main__":
+    import sys
+    if "--" in sys.argv:
+        sys.argv = sys.argv[sys.argv.index("--") + 1:]
     main()
