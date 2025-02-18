@@ -1,6 +1,7 @@
 import argparse
 from alpao_simulator import deformable_mirror as _dm
 from alpao_simulator import interferometer as _interf
+from alpao_simulator import live_viewer as _live
 import sys
 
 if "--" in sys.argv:
@@ -15,6 +16,7 @@ print("\nAlpao Simulator initialized.\n")
 dm = _dm.AlpaoDm(args.actuators)
 interf = _interf.Interferometer(dm)
 print(f"Interferometer initialized: {interf.model}\n")
+_live.liveView(interf, update_interval=500)
     
 
 # if __name__ == "__main__":

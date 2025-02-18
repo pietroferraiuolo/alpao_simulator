@@ -1,3 +1,4 @@
+import time as _t
 import numpy as _np
 from alpao_simulator.ground import geometry as _geo
 from alpao_simulator.ground import config_loader as cl
