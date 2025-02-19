@@ -26,6 +26,8 @@ class BaseDeformableMirror(ABC):
         self.IM = None
         self.ZM = None
         self.RM = None
+
+        print(" "*11+f"DM {self.nActs}\n")
         self._load_matrices()
 
 
@@ -71,7 +73,7 @@ class BaseDeformableMirror(ABC):
             print(f"First time simulating DM {self.nActs}. Generating influence functions...")
             self._simulate_Zonal_Iff_Acquisition()
         else:
-            print(f"Loaded influence functions for DM {self.nActs}")
+            print(f"Loaded influence functions.")
             self._iffCube = np.ma.masked_array(osu.load_fits(fp.INFLUENCE_FUNCTIONS_FILE(self.nActs)))
         self._create_int_and_rec_matrices()
         self._create_zernike_matrix()
@@ -87,7 +89,7 @@ class BaseDeformableMirror(ABC):
             self.ZM = zern.generate_zernike_matrix(n_zern, self.mask)
             osu.save_fits(fp.ZERNMAT_FILE(self.nActs), self.ZM)
         else:
-            print(f"Loaded Zernike matrix for DM {self.nActs}")
+            print(f"Loaded Zernike matrix.")
             self.ZM = osu.load_fits(fp.ZERNMAT_FILE(self.nActs))
 
 
@@ -105,14 +107,14 @@ class BaseDeformableMirror(ABC):
             )
             osu.save_fits(fp.INTMAT_FILE(self.nActs), self.IM)
         else:
-            print(f"Loaded interaction matrix for DM {self.nActs}")
+            print(f"Loaded interaction matrix.")
             self.IM = osu.load_fits(fp.INTMAT_FILE(self.nActs))
         if not os.path.exists(fp.RECMAT_FILE(self.nActs)):
             print("Computing reconstruction matrix...")
             self.RM = np.linalg.pinv(self.IM)
             osu.save_fits(fp.RECMAT_FILE(self.nActs), self.RM)
         else:
-            print(f"Loaded reconstruction matrix for DM {self.nActs}")
+            print(f"Loaded reconstruction matrix.")
             self.RM = osu.load_fits(fp.RECMAT_FILE(self.nActs))
 
 

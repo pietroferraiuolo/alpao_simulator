@@ -1,4 +1,5 @@
 import time
+from numpy import uint8
 from astropy.io import fits
 from numpy.ma import masked_array
 from configparser import ConfigParser
@@ -39,7 +40,7 @@ def save_fits(filepath, data):
     if isinstance(data, masked_array):
         fits.writeto(filepath, data.data, overwrite=True)
         if hasattr(data, 'mask'):
-            fits.append(filepath, data.mask.astype(int))
+            fits.append(filepath, data.mask.astype(uint8))
     else:
         fits.writeto(filepath, data, overwrite=True)
         

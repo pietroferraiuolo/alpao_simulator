@@ -38,7 +38,7 @@ class AlpaoDm(BaseDeformableMirror):
         np.array
             Current amplitudes commanded to the dm's actuators.
         """
-        return self._actPos
+        return self._actPos.copy()
     
     def uploadCmdHistory(self, cmdhist):
         """
@@ -98,7 +98,8 @@ class AlpaoDm(BaseDeformableMirror):
             Processed shape based on the command.
         """
         plt.figure(figsize=(7, 6))
-        plt.scatter(self._scaledActCoords[:,0], self._scaledActCoords[:,1], c=cmd)
+        size = (120*97)/self.nActs
+        plt.scatter(self._scaledActCoords[:,0], self._scaledActCoords[:,1], c=cmd, s=size)
         plt.xlabel(r"$x$ $[px]$")
         plt.ylabel(r"$y$ $[px]$")
         plt.title(f"DM {self.nActs} Actuator's Coordinates")
@@ -130,3 +131,16 @@ class AlpaoDm(BaseDeformableMirror):
             cmd_amp = cmd - self._actPos
         self._shape[self._idx] += np.dot(cmd_amp, self.IM)
         self._actPos += cmd_amp
+
+
+    def _wavefront(self):
+        """
+        Current shape of the mirror's surface. Only used for the live viewer
+        (see `live_viewer.py`).
+        
+        Returns
+        -------
+        np.array
+            Phase map of the interferometer.
+        """
+        return np.ma.masked_array(self._shape, mask=self.mask)

@@ -1,4 +1,5 @@
 import sys
+import functools
 import multiprocessing as mp
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -6,68 +7,50 @@ from matplotlib.animation import FuncAnimation
 # Global variable so the animation reference is maintained.
 _anim = None
 
-def _live_animation(interferometer, update_interval):
+def live_animation(dm, with_profiles: bool = False, update_interval=500):
     """
     Runs the live-view animation for an Interferometer instance.
 
     Parameters
     ----------
-    interferometer : Object
-        An instance of Interferometer (or similar) that has acquire_phasemap().
+    dm : Object
+        An instance of the deformable mirror to display it's surface.
     update_interval : float
         Time interval in milliseconds between updates.
     """
     global _anim
+    plt.ion()
 
     fig, ax = plt.subplots()
-    im = ax.imshow(interferometer.acquire_phasemap(), cmap='gray')
+    fig.canvas.manager.set_window_title(f"Live View - Alpao DM {dm.nActs}")
+    im = ax.imshow(dm._wavefront(), cmap='gray_r')
+    #ax.set_title(f"Alpao DM {dm.nActs}")
+    if with_profiles:
+        ax2 = fig.add_axes([0.1, 0.1, 0.3, 0.3])
+        ax2.set_title("Profile")
+        ax2.set_xlabel("Actuator")
+        ax2.set_ylabel("Amplitude")
+        ax2.set_xlim(0, dm.nActs)
+        ax2.set_ylim(-1, 1)
+        ax2.plot(dm.get_shape(), 'b-')
+        ax2.grid(True)
+    else:
+        ax.axis('off')
+    fig.tight_layout()
 
-    # Set up a callback to exit when the figure is closed.
-    def on_close(event):
-        sys.exit(0)
-    fig.canvas.mpl_connect('close_event', on_close)
-
-    def update(frame):
-        new_img = interferometer.acquire_phasemap()
+    def update(frame, dm):
+        new_img = dm._wavefront()
         im.set_data(new_img)
-        fig.canvas.draw_idle()
+        #fig.canvas.draw_idle()
         return im,
 
     # Create and hold a reference to the animation.
     _anim = FuncAnimation(
         fig,
-        update,
+        func=functools.partial(update, dm=dm),
         interval=update_interval,
         blit=False,
         cache_frame_data=False
     )
     plt.show()
-
-
-def start_live_view(interferometer, update_interval=500):
-    """
-    Launches the live view animation in a new process.
-    
-    Parameters
-    ----------
-    interferometer : Object
-        An instance of Interferometer.
-    update_interval : float, optional
-        Time interval in milliseconds between updates (default is 500ms).
-    """
-    p = mp.Process(target=_live_animation, args=(interferometer, update_interval))
-    p.daemon = True
-    p.start()
-
-
-def liveView(interferometer, update_interval: float = 500):
-    """
-    Starts a live view that continuously updates the displayed phase map.
-    The live view stops updating when the plot window is closed.
-    
-    Parameters
-    ----------
-    update_interval : float
-        Time interval in milliseconds between updates.
-    """
-    start_live_view(interferometer, update_interval)
+    return fig, _anim

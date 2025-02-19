@@ -26,7 +26,7 @@ class Interferometer:
             kk = _np.floor(_np.random.random(1) * 5 - 2)
             masked_ima = img + _np.ones(img.shape) * self._lambda * kk
             imglist.append(masked_ima)
-        image = _np.dstack(imglist)
+        image = _np.ma.dstack(imglist)
         image = _np.mean(image, axis=2)
         masked_img = _np.ma.masked_array(image, mask=self._dm.mask)
         fimage = _geo.rebinned(masked_img, rebin)
