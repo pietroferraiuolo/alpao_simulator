@@ -1,6 +1,4 @@
-import sys
 import functools
-import multiprocessing as mp
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
@@ -23,7 +21,8 @@ def live_animation(dm, with_profiles: bool = False, update_interval=500):
 
     fig, ax = plt.subplots()
     fig.canvas.manager.set_window_title(f"Live View - Alpao DM {dm.nActs}")
-    im = ax.imshow(dm._wavefront(), cmap='gray_r')
+    im = ax.imshow(dm._wavefront(), cmap='gray')
+
     #ax.set_title(f"Alpao DM {dm.nActs}")
     if with_profiles:
         ax2 = fig.add_axes([0.1, 0.1, 0.3, 0.3])
@@ -38,19 +37,28 @@ def live_animation(dm, with_profiles: bool = False, update_interval=500):
         ax.axis('off')
     fig.tight_layout()
 
-    def update(frame, dm):
+    def update(frame):
         new_img = dm._wavefront()
+        im.set_clim(vmin=new_img.min(), vmax=new_img.max()) ##
         im.set_data(new_img)
-        #fig.canvas.draw_idle()
+        # fig.canvas.draw()
+        # fig.canvas.flush_events()
+        # fig.canvas.draw_idle()
         return im,
+
+    update(0)
 
     # Create and hold a reference to the animation.
     _anim = FuncAnimation(
         fig,
-        func=functools.partial(update, dm=dm),
+        func=update,
         interval=update_interval,
         blit=False,
         cache_frame_data=False
     )
-    plt.show()
+    plt.show(block=False)
+    plt.pause(0.5)
+    update(0)
+    # fig.canvas.draw()
+    # fig.canvas.flush_events()
     return fig, _anim

@@ -13,6 +13,7 @@ class AlpaoDm(BaseDeformableMirror):
         self._shape = np.ma.masked_array(self.mask * 0, mask=self.mask, dtype=float)
         self._idx = np.where(self.mask == 0)
         self._actPos = np.zeros(self.nActs)
+        self._live = False
 
 
     def set_shape(self, command, differential:bool=False, modal:bool=False):
@@ -28,6 +29,10 @@ class AlpaoDm(BaseDeformableMirror):
             If True, the command is applied differentially.
         """
         self._mirror_command(command, differential, modal)
+        if self._live:
+            import time
+            time.sleep(0.15)
+            plt.pause(0.05)
 
     def get_shape(self):
         """
@@ -83,20 +88,23 @@ class AlpaoDm(BaseDeformableMirror):
         self.set_shape(np.zeros(self.nActs))
         return tn
 
-    def visualize_shape(self, cmd):
+    def visualize_shape(self, cmd=None):
         """
         Visualizes the command amplitudes on the mirror's actuators.
 
         Parameters
         ----------
-        cmd : np.array
-            Command to be visualized on the mirror's actuators.
+        cmd : np.array, optional
+            Command to be visualized on the mirror's actuators. If none, will plot
+            the current position of the actuators.
 
         Returns
         -------
         np.array
             Processed shape based on the command.
         """
+        if cmd is None:
+            cmd = self._actPos.copy()
         plt.figure(figsize=(7, 6))
         size = (120*97)/self.nActs
         plt.scatter(self._scaledActCoords[:,0], self._scaledActCoords[:,1], c=cmd, s=size)
@@ -135,8 +143,8 @@ class AlpaoDm(BaseDeformableMirror):
 
     def _wavefront(self):
         """
-        Current shape of the mirror's surface. Only used for the live viewer
-        (see `live_viewer.py`).
+        Current shape of the mirror's surface. Only used for the interferometer's
+        live viewer (see `interferometer.py`).
         
         Returns
         -------

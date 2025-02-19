@@ -1,7 +1,6 @@
 import os
 import sys
 import argparse
-from alpao_simulator import live_viewer as _live
 from alpao_simulator import deformable_mirror as _dm
 from alpao_simulator import interferometer as _interf
 from IPython import get_ipython
@@ -17,6 +16,7 @@ args = parser.parse_args()
 ipython = get_ipython()
 if ipython is not None:
     ipython.run_line_magic(magic_name="matplotlib", line = "qt")
+    
 print("\n"+' '*6+"ALPAO SIMULATOR")
 dm = _dm.AlpaoDm(args.actuators)
 print("")
@@ -32,8 +32,3 @@ def import_m4_utilities():
     from m4.ground import read_data as rd
     from scripts.misc.IFFPackage import iff_module as ifm
     from m4.configuration import config_folder_names as fn
-
-
-def interfLiveView(*args):
-    """Starts the live viewer gui for the interferometer"""
-    _live.live_animation(dm, *args)
