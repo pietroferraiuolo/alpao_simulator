@@ -14,9 +14,10 @@ class Interferometer:
         self._fullWidth, self._fullHeight = self._readFullFrameSize()
         self._anim = None
         self._live = False
+        self.full_frame = False
 
 
-    def live(self, update_interval: int = 250, with_profiles: bool = False):
+    def live(self, update_interval: int = 250, with_profiles: bool = False, **kwargs):
         """
         Runs the live-view animation for the simulated Interferometer
         instance.
@@ -39,37 +40,60 @@ class Interferometer:
             Animation object of the live-view animation (needed to keep the plot
             alive).
         """
+        cmap = kwargs.get('cmap', 'gray')
         self._live = True
         self._dm._live = True
         global _anim
         _plt.ion()
-        fig, ax = _plt.subplots()
-        fig.canvas.manager.set_window_title(f"Live View - Alpao DM {self._dm.nActs}")
-        im = ax.imshow(self._dm._wavefront(), cmap='gray')
-        #ax.set_title(f"Alpao DM {dm.nActs}")
         if with_profiles:
-            ax2 = fig.add_axes([0.1, 0.1, 0.3, 0.3])
-            ax2.set_title("Profile")
-            ax2.set_xlabel("Actuator")
-            ax2.set_ylabel("Amplitude")
-            ax2.set_xlim(0, self._dm.nActs)
-            ax2.set_ylim(-1, 1)
-            ax2.plot(self._dm.get_shape(), 'b-')
-            ax2.grid(True)
+            fig, ax = _plt.subplots(figsize=(9.5,10))
+            fig.canvas.manager.set_window_title(f"Live View - Alpao DM {self._dm.nActs}")
+            gs = fig.add_gridspec(2, 2,  width_ratios=(4, 1), height_ratios=(4, 1),
+                            left=0.1, right=0.9, bottom=0.1, top=0.9,
+                            wspace=0.025, hspace=0.025)
+            # Wavefront image
+            ax = fig.add_subplot(gs[0, 0])
+            simg = self._dm._wavefront()
+            if self.full_frame:
+                simg = self.intoFullFrame(simg)
+            im = ax.imshow(simg, cmap=cmap)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            # vertical profile
+            axy = fig.add_subplot(gs[0, 1], sharey=ax)
+            axy.set_yticks([])
+            axy.hist(simg.compressed(), orientation='horizontal', histtype='step')
+            axy.tick_params(axis='y', labelleft=False)
+            # horizontal profile
+            axx = fig.add_subplot(gs[1, 0], sharex=ax)
+            axx.set_xticks([])
+            axx.hist(simg.compressed(), orientation='vertical', histtype='step')
+            axx.tick_params(axis='x', labelbottom=False)
+            pv_text = fig.text(0.5, 0.05, "", ha="center", va="center", fontsize=15)
         else:
+            fig, ax = _plt.subplots(figsize=(7,7.5))
+            fig.canvas.manager.set_window_title(f"Live View - Alpao DM {self._dm.nActs}")
+            simg = self._dm._wavefront()
+            if self.full_frame:
+                simg = self.intoFullFrame(simg)
+            im = ax.imshow(simg, cmap=cmap)
             ax.axis('off')
-        fig.tight_layout()
+            cbar = fig.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.9)
+            pv_text = fig.text(0.5, 0.05, "", ha="center", va="center", fontsize=15)
+            fig.tight_layout()
         def on_close(event):
             self._live = False
             self._dm._live = False
         fig.canvas.mpl_connect('close_event', on_close)
         def update(frame):
             new_img = self._dm._wavefront()
+            if self.full_frame:
+                new_img = self.intoFullFrame(new_img)
             im.set_clim(vmin=new_img.min(), vmax=new_img.max()) ##
             im.set_data(new_img)
-            # fig.canvas.draw()
-            # fig.canvas.flush_events()
-            # fig.canvas.draw_idle()
+            pv = (_np.max(new_img) - _np.min(new_img))*1e6
+            rms = _geo.rms(new_img)*1e6
+            pv_text.set_text(r'PV={:.3f} $\mu m$'.format(pv)+' '*10+r'RMS={:.5f} $\mu m$'.format(rms))
             return im,
         update(0)
         # Create and hold a reference to the animation.
@@ -81,6 +105,7 @@ class Interferometer:
             cache_frame_data=False
         )
         _plt.show(block=False)
+        # force an `update()` to update the figure
         _plt.pause(0.5)
         update(0)
         return fig, self._anim
@@ -105,10 +130,12 @@ class Interferometer:
         image = _np.mean(image, axis=2)
         masked_img = _np.ma.masked_array(image, mask=self._dm.mask)
         fimage = _geo.rebinned(masked_img, rebin)
+        if self.full_frame:
+            fimage = self.intoFullFrame(fimage)
         return fimage
     
 
-    def intoFullFrame(self, img):
+    def intoFullFrame(self, img=None):
         """
         Converts the image to a full frame image of 2000x2000 pxs.
         
@@ -122,6 +149,9 @@ class Interferometer:
         full_frame : np.array
             Full frame image.
         """
+        if img is None:
+            self.full_frame = True
+            return
         params = self.getCameraSettings()
         ocentre = (params['Width']//2-1, params['Height']//2-1)
         ncentre = (self._fullWidth//2-1, self._fullHeight//2-1)

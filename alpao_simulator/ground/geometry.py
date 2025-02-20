@@ -157,3 +157,10 @@ def pixel_scale(nacts:int):
     """
     dm = cl.load_dm_configuration(nacts)
     return float(dm['pixel_scale'])
+
+
+def rms(image):
+    """
+    Function which returns the Root Mean Square of the input image.
+    """
+    return np.sqrt(np.mean(image**2))

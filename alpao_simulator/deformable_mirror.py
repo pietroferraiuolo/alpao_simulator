@@ -10,10 +10,11 @@ class AlpaoDm(BaseDeformableMirror):
     def __init__(self, nActs):
         super(AlpaoDm, self).__init__(nActs)
         self.cmdHistory = None
-        self._shape = np.ma.masked_array(self.mask * 0, mask=self.mask, dtype=float)
-        self._idx = np.where(self.mask == 0)
-        self._actPos = np.zeros(self.nActs)
-        self._live = False
+        self._shape     = np.ma.masked_array(self.mask * 0, mask=self.mask, dtype=float)
+        self._idx       = np.where(self.mask == 0)
+        self._actPos    = np.zeros(self.nActs)
+        self._live      = False
+        self._produce_random_shape()
 
 
     def set_shape(self, command, differential:bool=False, modal:bool=False):
@@ -28,7 +29,8 @@ class AlpaoDm(BaseDeformableMirror):
         differential : bool
             If True, the command is applied differentially.
         """
-        self._mirror_command(command, differential, modal)
+        scaled_cmd = command*1e-5 # more realistic command
+        self._mirror_command(scaled_cmd, differential, modal)
         if self._live:
             import time
             time.sleep(0.15)
@@ -52,7 +54,7 @@ class AlpaoDm(BaseDeformableMirror):
         """
         self.cmdHistory = cmdhist
 
-    def runCmdHistory(self, interf=None, rebin:int=1, save:bool=False):
+    def runCmdHistory(self, interf=None, rebin:int=1, modal:bool=False):
         """
         Runs the command history on the deformable mirror.
         
@@ -76,16 +78,17 @@ class AlpaoDm(BaseDeformableMirror):
             tn = osu.newtn()
             print(f"{tn} - {self.cmdHistory.shape[-1]} images to go.")
             datafold = os.path.join(fp.OPD_IMAGES_FOLDER, tn)
+            s = self.get_shape()
             if not os.path.exists(datafold):
                 os.mkdir(datafold)
             for i,cmd in enumerate(self.cmdHistory.T):
                 print(f"{i+1}/{self.cmdHistory.shape[-1]}", end="\r", flush=True)
-                self.set_shape(cmd)
+                self.set_shape(cmd, modal=modal)
                 if interf is not None:
                     img = interf.acquire_phasemap(rebin=rebin)
                     path = os.path.join(datafold, f"image_{i:05d}.fits")
                     osu.save_fits(path, img)
-        self.set_shape(np.zeros(self.nActs))
+        self.set_shape(s)
         return tn
 
     def visualize_shape(self, cmd=None):
@@ -152,3 +155,21 @@ class AlpaoDm(BaseDeformableMirror):
             Phase map of the interferometer.
         """
         return np.ma.masked_array(self._shape, mask=self.mask)
+    
+    def _produce_random_shape(self):
+        """
+        Produces a random shape for the deformable mirror initialization,
+        by using a linear combination of Tip/Tilt and focus.
+        
+        Returns
+        -------
+        np.array
+            Random shape for the deformable mirror.
+        """
+        mat = np.eye(self.nActs)
+        tx = mat[0]
+        ty = mat[1]
+        f = mat[3]
+        rand = np.random.uniform
+        cmd = rand(0.05,0.005)*ty + rand(0.05,0.005)*tx + rand(0.01,0.001)*f
+        self.set_shape(cmd, modal=True)
