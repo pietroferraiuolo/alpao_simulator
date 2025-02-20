@@ -1,4 +1,10 @@
-import functools
+"""
+DEPRECATED
+==========
+Put it into the interferometer class.
+See `Interferometer.live()` for more information.
+"""
+
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
