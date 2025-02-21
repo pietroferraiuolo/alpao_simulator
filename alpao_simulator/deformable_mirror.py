@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from alpao_simulator import folder_paths as fp
 from alpao_simulator.ground import osutils as osu
+from alpao_simulator.ground import zernike as zern
 from alpao_simulator.ground.base_deformable_mirror import BaseDeformableMirror
 
 class AlpaoDm(BaseDeformableMirror):
@@ -144,7 +145,7 @@ class AlpaoDm(BaseDeformableMirror):
         self._actPos += cmd_amp
 
 
-    def _wavefront(self):
+    def _wavefront(self, zernike=None):
         """
         Current shape of the mirror's surface. Only used for the interferometer's
         live viewer (see `interferometer.py`).
@@ -154,7 +155,10 @@ class AlpaoDm(BaseDeformableMirror):
         np.array
             Phase map of the interferometer.
         """
-        return np.ma.masked_array(self._shape, mask=self.mask)
+        img = np.ma.masked_array(self._shape, mask=self.mask)
+        if zernike is not None:
+            img = zern.removeZernike(img, zernike)
+        return img
     
     def _produce_random_shape(self):
         """
@@ -166,10 +170,16 @@ class AlpaoDm(BaseDeformableMirror):
         np.array
             Random shape for the deformable mirror.
         """
-        mat = np.eye(self.nActs)
-        tx = mat[0]
-        ty = mat[1]
-        f = mat[3]
-        rand = np.random.uniform
-        cmd = rand(0.05,0.005)*ty + rand(0.05,0.005)*tx + rand(0.01,0.001)*f
-        self.set_shape(cmd, modal=True)
+        try:
+            shape = osu.load_fits(os.path.join(fp.CONFIGURATION_ROOT_FOLDER, f"dm{self.nActs}_baseShape.fits"))
+            self._shape = np.ma.masked_array(shape)
+        except FileNotFoundError:
+            mat = np.eye(self.nActs)
+            tx = mat[0]
+            ty = mat[1]
+            f = mat[3]
+            rand = np.random.uniform
+            cmd = rand(0.05,0.005)*ty + rand(0.05,0.005)*tx + rand(0.01,0.001)*f
+            self.set_shape(cmd, modal=True)
+            osu.save_fits(fp.CONFIGURATION_ROOT_FOLDER, f"dm{self.nActs}_baseShape.fits", self._shape)
+            self._actPos = np.zeros(self.nActs)

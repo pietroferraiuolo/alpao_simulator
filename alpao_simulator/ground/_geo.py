@@ -4,7 +4,7 @@ Autor(s)
 ---------
     - Federico Miceli : added funcitonality on march 2022
     - Runa Briguglio : created Mar 2020
-    - Pietro Ferraiuolo : polished on 2024 for this Alignment Software
+    - Pietro Ferraiuolo : polished on 2024
 
 Description
 -----------
