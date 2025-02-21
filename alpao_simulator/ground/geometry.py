@@ -1,5 +1,4 @@
 import numpy as np
-from matplotlib import pyplot as plt
 import alpao_simulator.ground.config_loader as cl
 
 def getDmCoordinates(Nacts: int):
@@ -23,7 +22,6 @@ def getDmCoordinates(Nacts: int):
     lower_rows = [l for l in reversed(upper_rows)]
     center_rows = [n_dim] * upper_rows[0]
     rows_number_of_acts = upper_rows + center_rows + lower_rows
-    N_acts = sum(rows_number_of_acts)
     n_rows = len(rows_number_of_acts)
     cx = np.array([], dtype=int)
     cy = np.array([], dtype=int)
