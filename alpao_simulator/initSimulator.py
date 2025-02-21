@@ -15,6 +15,17 @@ tns = {
     '820': '20250221_123831',
 }
 
+def _createHadamardMat(nacts):
+    """
+    Create a Hadamard matrix of size 2^nacts x 2^nacts.
+    """
+    from scipy.linalg import hadamard
+    import math
+    numb = math.ceil(math.log(nacts, 2))
+    hadm = hadamard(2**numb)
+    cmdBase = hadm[1 : nacts + 1, 1 : nacts + 1]
+    return cmdBase
+
 # bash alias argument parser
 if "--" in sys.argv:
     sys.argv = sys.argv[sys.argv.index("--") + 1:]
@@ -34,6 +45,7 @@ dm = _dm.AlpaoDm(args.actuators)
 print("")
 interf = _interf.Interferometer(dm)
 print(f"{interf.model} Interferometer initialized")
+hmat = _createHadamardMat(dm.nActs)
 
 def import_m4_utilities():
     """Imports useful M4 software utilities for calibration"""
@@ -46,4 +58,3 @@ def import_m4_utilities():
     from m4.configuration import config_folder_names as fn
     icp = IFFCapturePreparation(dm)
     print("M4 utilities imported")
-

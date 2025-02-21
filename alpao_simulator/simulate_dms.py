@@ -3,7 +3,7 @@ import alpao_simulator.folder_paths as fp
 from alpao_simulator.deformable_mirror import AlpaoDm
 
 def main():
-    dms = [97, 277, 468, 820]
+    dms = [88, 97, 277, 468, 820]
     print(f"The following data will be stored in '{fp.INFLUENCE_FUNCTIONS_FOLDER}'.\n"\
           f"To change the folder, modify the 'path' in the '{fp.CONFIGURATION_FILE}' file.\n"
     )
