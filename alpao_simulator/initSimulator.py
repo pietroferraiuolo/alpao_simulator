@@ -6,18 +6,29 @@ from alpao_simulator import deformable_mirror as _dm
 from alpao_simulator import interferometer as _interf
 from IPython import get_ipython
 
+# "measured" iff tns for each AlpaoDm available.
+tns = {
+    '88': '20250221_161425',
+    '97': '20250221_121828',
+    '277': '20250221_122151',
+    '468': '20250221_122720',
+    '820': '20250221_123831',
+}
 
+# bash alias argument parser
 if "--" in sys.argv:
     sys.argv = sys.argv[sys.argv.index("--") + 1:]
-
 parser = argparse.ArgumentParser(description="Initialize Alpao Simulator with a specified number of actuators.")
-parser.add_argument("--actuators", type=int, default=97,
-                    help="Number of actuators for the deformable mirror (default: 97)")
+parser.add_argument("--actuators", type=int, default=88,
+                    help="Number of actuators for the deformable mirror (default: 88)")
 args = parser.parse_args()
+
+# qt backend for live interferometer view
 ipython = get_ipython()
 if ipython is not None:
     ipython.run_line_magic(magic_name="matplotlib", line = "qt")
-    
+
+# simulator initialization, DM and interferometer
 print("\n"+' '*6+"ALPAO SIMULATOR")
 dm = _dm.AlpaoDm(args.actuators)
 print("")
@@ -36,9 +47,3 @@ def import_m4_utilities():
     icp = IFFCapturePreparation(dm)
     print("M4 utilities imported")
 
-tns = {
-    '97': '20250221_121828',
-    '277': '20250221_122151',
-    '468': '20250221_122720',
-    '820': '20250221_123831',
-}
