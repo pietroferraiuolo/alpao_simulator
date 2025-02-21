@@ -35,3 +35,10 @@ def import_m4_utilities():
     from m4.configuration import config_folder_names as fn
     icp = IFFCapturePreparation(dm)
     print("M4 utilities imported")
+
+tns = {
+    '97': '20250221_121828',
+    '277': '20250221_122151',
+    '468': '20250221_122720',
+    '820': '20250221_123831',
+}
