@@ -56,7 +56,13 @@ class AlpaoDm(BaseDeformableMirror):
         """
         self.cmdHistory = cmdhist
 
-    def runCmdHistory(self, interf=None, rebin: int = 1, modal: bool = False):
+    def runCmdHistory(
+        self,
+        interf=None,
+        rebin: int = 1,
+        modal: bool = False,
+        differential: bool = True,
+    ):
         """
         Runs the command history on the deformable mirror.
 
@@ -66,8 +72,11 @@ class AlpaoDm(BaseDeformableMirror):
             Interferometer object to acquire the phase map.
         rebin : int
             Rebinning factor for the acquired phase map.
-        save : bool
-            If True, saves the acquired phase maps.
+        modal : bool
+            If True, the command history is modal.
+        differential : bool
+            If True, the command history is applied differentially
+            to the initial shape.
 
         Returns
         -------
@@ -85,6 +94,8 @@ class AlpaoDm(BaseDeformableMirror):
                 os.mkdir(datafold)
             for i, cmd in enumerate(self.cmdHistory.T):
                 print(f"{i+1}/{self.cmdHistory.shape[-1]}", end="\r", flush=True)
+                if differential:
+                    cmd = cmd + s
                 self.set_shape(cmd, modal=modal)
                 if interf is not None:
                     img = interf.acquire_phasemap(rebin=rebin)
