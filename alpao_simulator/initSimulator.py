@@ -54,7 +54,7 @@ def import_m4_utilities():
     from m4.dmutils.flattening import Flattening
     from m4.dmutils.iff_acquisition_preparation import IFFCapturePreparation
     from m4.ground import read_data as rd
-    from scripts.misc.IFFPackage import iff_module as ifm
+    from m4.dmutils import iff_module as ifm
     from m4.configuration import config_folder_names as fn
     icp = IFFCapturePreparation(dm)
     print("M4 utilities imported")
