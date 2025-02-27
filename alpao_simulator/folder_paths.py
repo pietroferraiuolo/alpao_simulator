@@ -7,8 +7,9 @@ fn = ufp.folders
 CONFIGURATION_FILE = os.path.join(os.path.dirname(__file__), 'sysconfig', 'configuration.conf')
 CONFIGURATION_ROOT_FOLDER = CONFIGURATION_FILE.replace('configuration.conf', '')
 BASE_PATH = load_data_path(CONFIGURATION_FILE)
-DATA_ROOT_FOLDER = os.path.join(BASE_PATH, 'data')
-INFLUENCE_FUNCTIONS_FOLDER = os.path.join(DATA_ROOT_FOLDER, 'influence_functions')
+INFLUENCE_FUNCTIONS_FOLDER = os.path.join(BASE_PATH, 'influence_functions')
+if not os.path.exists(INFLUENCE_FUNCTIONS_FOLDER):
+    os.makedirs(INFLUENCE_FUNCTIONS_FOLDER)
 INTERF_CONF_FILE = os.path.join(CONFIGURATION_ROOT_FOLDER, 'InterfSettings.conf')
 OPD_IMAGES_FOLDER = fn.OPD_IMAGES_ROOT_FOLDER
 
