@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from alpao_simulator import folder_paths as fp
 from alpao_simulator.ground import osutils as osu
 from alpao_simulator.ground import zernike as zern
+from alpao_simulator.ground import geometry as _geo
 from alpao_simulator.ground.base_deformable_mirror import BaseDeformableMirror
 
 
@@ -158,19 +159,37 @@ class AlpaoDm(BaseDeformableMirror):
         self._shape[self._idx] += np.dot(cmd_amp, self.IM)
         self._actPos += cmd_amp
 
-    def _wavefront(self, zernike=None):
+    def _wavefront(self, **kwargs):
         """
         Current shape of the mirror's surface. Only used for the interferometer's
         live viewer (see `interferometer.py`).
 
+        Parameters
+        ----------
+        zernike : int, optional
+            Zernike mode to be removed from the wavefront.
+        wf : bool, optional
+            If True, the wavefront is returned instead of
+            the shape.
+
         Returns
         -------
-        np.array
+        wf : np.array
             Phase map of the interferometer.
         """
+        zernike = kwargs.get("zernike", None)
+        wf = kwargs.get("wf", True)
+        noisy = kwargs.get("noisy", False)
         img = np.ma.masked_array(self._shape, mask=self.mask)
         if zernike is not None:
             img = zern.removeZernike(img, zernike)
+        if not wf:
+            Ilambda = 632.8e-9
+            phi = np.random.uniform(-0.25*np.pi, 0.25*np.pi) if noisy else 0
+            wf = np.sin(2*np.pi/Ilambda * img + phi)
+            A = _geo.rms(img)/_geo.rms(wf)
+            wf *= A
+            img = wf
         return img
 
     def _produce_random_shape(self):
@@ -197,7 +216,7 @@ class AlpaoDm(BaseDeformableMirror):
             f = mat[3]
             rand = np.random.uniform
             cmd = (
-                rand(0.05, 0.005) * ty + rand(0.05, 0.005) * tx + rand(0.01, 0.001) * f
+                rand(0.05, 0.005) * ty + rand(0.05, 0.005) * tx + rand(0.005, 0.0005) * f
             )
             self.set_shape(cmd, modal=True)
             osu.save_fits(
