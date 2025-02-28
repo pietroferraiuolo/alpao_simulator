@@ -1,4 +1,5 @@
 import os
+import time
 import numpy as np
 from matplotlib import pyplot as plt
 from alpao_simulator import folder_paths as fp
@@ -60,9 +61,11 @@ class AlpaoDm(BaseDeformableMirror):
     def runCmdHistory(
         self,
         interf=None,
+        save: str = None,
         rebin: int = 1,
         modal: bool = False,
         differential: bool = True,
+        delay: float = 0,
     ):
         """
         Runs the command history on the deformable mirror.
@@ -87,7 +90,7 @@ class AlpaoDm(BaseDeformableMirror):
         if self.cmdHistory is None:
             raise Exception("No Command History to run!")
         else:
-            tn = osu.newtn()
+            tn = osu.newtn() if save is None else save
             print(f"{tn} - {self.cmdHistory.shape[-1]} images to go.")
             datafold = os.path.join(fp.OPD_IMAGES_FOLDER, tn)
             s = self.get_shape()
@@ -99,6 +102,7 @@ class AlpaoDm(BaseDeformableMirror):
                     cmd = cmd + s
                 self.set_shape(cmd, modal=modal)
                 if interf is not None:
+                    time.sleep(delay)
                     img = interf.acquire_phasemap(rebin=rebin)
                     path = os.path.join(datafold, f"image_{i:05d}.fits")
                     osu.save_fits(path, img)

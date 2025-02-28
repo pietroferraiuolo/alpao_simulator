@@ -17,14 +17,15 @@ class Interferometer:
         self._anim = None
         self._live = False
         self._surf = False
+        self._freeze = False
+        self._noisy = False
+        self._fps = 10
         self._fW, self._fH = self._readFullFrameSize()
 
     def live(
         self,
         shape2remove=None,
-        noisy: bool = False,
-        update_interval: int = 100,
-        wavefront: bool = True,
+        framerate = 10,
         **kwargs,
     ):
         """
@@ -46,7 +47,7 @@ class Interferometer:
             Animation object of the live-view animation (needed to keep the plot
             alive).
         """
-        self._surf = not wavefront
+        self._fps = framerate
         if shape2remove is not None:
             self.shapeRemoval(shape2remove)
         global _anim
@@ -60,7 +61,7 @@ class Interferometer:
         fig, ax = _plt.subplots(figsize=(7, 7.5))
         fig.subplots_adjust(top=0.9, bottom=0.1, left=0.05, right=0.95)
         fig.canvas.manager.set_window_title(f"Live View - Alpao DM {self._dm.nActs}")
-        simg = self._dm._wavefront(zernike=shape2remove, wf=self._surf, noisy=noisy)
+        simg = self._dm._wavefront(zernike=shape2remove, wf=self._surf, noisy=self._noisy)
         if self.full_frame:
             simg = self.intoFullFrame(simg)
         im = ax.imshow(simg, cmap=cmap)
@@ -80,12 +81,12 @@ class Interferometer:
         # Update Event
         def update(frame):
             new_img = self._dm._wavefront(
-                zernike=self.shapesRemoved, wf=self._surf, noisy=noisy
+                zernike=self.shapesRemoved, wf=self._surf, noisy=self._noisy
             )
             if self.full_frame:
                 new_img = self.intoFullFrame(new_img)
             if not self._surf:
-                fps_txt.set_text(f"FPS: {(1 / update_interval * 1000):.1f}")
+                fps_txt.set_text(f"FPS: {framerate:.1f}")
                 pv_txt.set_text("")
                 shape_txt.set_text("")
             else:
@@ -113,7 +114,7 @@ class Interferometer:
         self._anim = _FuncAnimation(
             fig,
             func=update,
-            interval=update_interval,
+            interval=(1000/framerate),
             blit=False,
             cache_frame_data=False,
         )
@@ -148,10 +149,11 @@ class Interferometer:
             fimage = self.intoFullFrame(fimage)
         if self.shapesRemoved is not None:
             fimage = zern.removeZernike(fimage, self.shapesRemoved)
-        if self._live:
-            self._surf = True
-            _plt.pause(1)
-            self._surf = False
+        if self._freeze:
+            if self._live:
+                self._surf = True
+                _plt.pause(1)
+                self._surf = False
         return fimage
 
     def intoFullFrame(self, img=None):
@@ -182,7 +184,10 @@ class Interferometer:
         full_frame = _np.ma.masked_array(full_frame, mask=new_mask)
         return full_frame
 
-    def shapeRemoval(self, modes):
+
+    #--------------------------------------------------------------------------
+    # Series of functions to control the behaviour of the live interferometer
+    def toggleShapeRemoval(self, modes):
         """
         Removes the acquired shape by the define Zernike modes.
 
@@ -193,14 +198,58 @@ class Interferometer:
         """
         self.shapesRemoved = modes
 
-    def continuous(self):
+
+    def toggleSurfaceView(self):
         """
         Continuously acquires the phase map of the interferometer.
 
         In reality, instead of the fringes, it will show the surface
         shape acquired of the dm.
         """
-        self._surf = True if self._surf is False else False
+        self._surf = not self._surf
+
+
+    def toggleAcquisitionLiveFreeze(self):
+        """
+        Freezes the live wavefront when acquiring, to show the
+        measured surface.
+        """
+        self._freeze = not self._freeze
+
+
+    def toggleLiveNoise(self):
+        """
+        Adds noise to the live wavefront.
+        """
+        self._noisy = not self._noisy
+
+
+    def live_info(self):
+        """
+        Prints the current state of the interferometer.
+
+        Returns
+        -------
+        dict
+            Current state of the live interferometer.
+        """
+        params = self.getCameraSettings()
+        state = f"""
+{self.model}
+--------------------------
+Full Frame Size    : {self._fW}x{self._fH}
+Actual Frame Size  : {params['Width']}x{params['Height']}
+Offsets            : ({params['x-offset']}, {params['y-offset']})
+Framerate          : {self._fps:.2f} Hz
+
+Live Interferometer Info:
+--------------------------
+Shape Removal      : {self.shapesRemoved}
+Surface View       : {self._surf}
+Freeze on Acqu.    : {self._freeze}
+Noise              : {self._noisy}"""
+        print(state)
+    #==========================================================================
 
     def getCameraSettings(self):
         """
