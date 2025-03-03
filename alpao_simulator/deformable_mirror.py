@@ -170,11 +170,15 @@ class AlpaoDm(BaseDeformableMirror):
 
         Parameters
         ----------
-        zernike : int, optional
-            Zernike mode to be removed from the wavefront.
-        wf : bool, optional
-            If True, the wavefront is returned instead of
-            the shape.
+        **kwargs : dict, optional
+            Additional keyword arguments for customization.
+            - zernike : int , 
+                Zernike mode to be removed from the wavefront.
+            - surf : bool , 
+                If True, the shape is returned instead of
+                the wavefront.
+            - noisy : bool , 
+                If True, adds noise to the wavefront.
 
         Returns
         -------
@@ -182,12 +186,12 @@ class AlpaoDm(BaseDeformableMirror):
             Phase map of the interferometer.
         """
         zernike = kwargs.get("zernike", None)
-        wf = kwargs.get("wf", True)
+        surf = kwargs.get("surf", True)
         noisy = kwargs.get("noisy", False)
         img = np.ma.masked_array(self._shape, mask=self.mask)
         if zernike is not None:
             img = zern.removeZernike(img, zernike)
-        if not wf:
+        if not surf:
             Ilambda = 632.8e-9
             phi = np.random.uniform(-0.25*np.pi, 0.25*np.pi) if noisy else 0
             wf = np.sin(2*np.pi/Ilambda * img + phi)

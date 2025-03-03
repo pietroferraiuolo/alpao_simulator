@@ -61,7 +61,7 @@ class Interferometer:
         fig, ax = _plt.subplots(figsize=(7, 7.5))
         fig.subplots_adjust(top=0.9, bottom=0.1, left=0.05, right=0.95)
         fig.canvas.manager.set_window_title(f"Live View - Alpao DM {self._dm.nActs}")
-        simg = self._dm._wavefront(zernike=shape2remove, wf=self._surf, noisy=self._noisy)
+        simg = self._dm._wavefront(zernike=shape2remove, surf=self._surf, noisy=self._noisy)
         if self.full_frame:
             simg = self.intoFullFrame(simg)
         im = ax.imshow(simg, cmap=cmap)
@@ -81,7 +81,7 @@ class Interferometer:
         # Update Event
         def update(frame):
             new_img = self._dm._wavefront(
-                zernike=self.shapesRemoved, wf=self._surf, noisy=self._noisy
+                zernike=self.shapesRemoved, surf=self._surf, noisy=self._noisy
             )
             if self.full_frame:
                 new_img = self.intoFullFrame(new_img)
