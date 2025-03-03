@@ -1,9 +1,11 @@
 import os
+import time
 import numpy as np
 from matplotlib import pyplot as plt
 from alpao_simulator import folder_paths as fp
 from alpao_simulator.ground import osutils as osu
 from alpao_simulator.ground import zernike as zern
+from alpao_simulator.ground import geometry as _geo
 from alpao_simulator.ground.base_deformable_mirror import BaseDeformableMirror
 
 
@@ -59,9 +61,11 @@ class AlpaoDm(BaseDeformableMirror):
     def runCmdHistory(
         self,
         interf=None,
+        save: str = None,
         rebin: int = 1,
         modal: bool = False,
         differential: bool = True,
+        delay: float = 0,
     ):
         """
         Runs the command history on the deformable mirror.
@@ -86,7 +90,7 @@ class AlpaoDm(BaseDeformableMirror):
         if self.cmdHistory is None:
             raise Exception("No Command History to run!")
         else:
-            tn = osu.newtn()
+            tn = osu.newtn() if save is None else save
             print(f"{tn} - {self.cmdHistory.shape[-1]} images to go.")
             datafold = os.path.join(fp.OPD_IMAGES_FOLDER, tn)
             s = self.get_shape()
@@ -98,6 +102,7 @@ class AlpaoDm(BaseDeformableMirror):
                     cmd = cmd + s
                 self.set_shape(cmd, modal=modal)
                 if interf is not None:
+                    time.sleep(delay)
                     img = interf.acquire_phasemap(rebin=rebin)
                     path = os.path.join(datafold, f"image_{i:05d}.fits")
                     osu.save_fits(path, img)
@@ -158,19 +163,41 @@ class AlpaoDm(BaseDeformableMirror):
         self._shape[self._idx] += np.dot(cmd_amp, self.IM)
         self._actPos += cmd_amp
 
-    def _wavefront(self, zernike=None):
+    def _wavefront(self, **kwargs):
         """
         Current shape of the mirror's surface. Only used for the interferometer's
         live viewer (see `interferometer.py`).
 
+        Parameters
+        ----------
+        **kwargs : dict, optional
+            Additional keyword arguments for customization.
+            - zernike : int , 
+                Zernike mode to be removed from the wavefront.
+            - surf : bool , 
+                If True, the shape is returned instead of
+                the wavefront.
+            - noisy : bool , 
+                If True, adds noise to the wavefront.
+
         Returns
         -------
-        np.array
+        wf : np.array
             Phase map of the interferometer.
         """
+        zernike = kwargs.get("zernike", None)
+        surf = kwargs.get("surf", True)
+        noisy = kwargs.get("noisy", False)
         img = np.ma.masked_array(self._shape, mask=self.mask)
         if zernike is not None:
             img = zern.removeZernike(img, zernike)
+        if not surf:
+            Ilambda = 632.8e-9
+            phi = np.random.uniform(-0.25*np.pi, 0.25*np.pi) if noisy else 0
+            wf = np.sin(2*np.pi/Ilambda * img + phi)
+            A = _geo.rms(img)/_geo.rms(wf)
+            wf *= A
+            img = wf
         return img
 
     def _produce_random_shape(self):
@@ -197,7 +224,7 @@ class AlpaoDm(BaseDeformableMirror):
             f = mat[3]
             rand = np.random.uniform
             cmd = (
-                rand(0.05, 0.005) * ty + rand(0.05, 0.005) * tx + rand(0.01, 0.001) * f
+                rand(0.05, 0.005) * ty + rand(0.05, 0.005) * tx + rand(0.005, 0.0005) * f
             )
             self.set_shape(cmd, modal=True)
             osu.save_fits(

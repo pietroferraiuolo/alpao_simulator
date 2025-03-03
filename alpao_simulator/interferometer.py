@@ -16,22 +16,28 @@ class Interferometer:
         self._lambda = 632.8e-9  # Wavelength of the light in meters
         self._anim = None
         self._live = False
-        self._fullWidth, self._fullHeight = self._readFullFrameSize()
+        self._surf = False
+        self._freeze = False
+        self._noisy = False
+        self._fps = 10
+        self._fW, self._fH = self._readFullFrameSize()
 
-    def live(self, shape2remove=None, **kwargs):
+    def live(
+        self,
+        shape2remove=None,
+        framerate = 10,
+        **kwargs,
+    ):
         """
         Runs the live-view animation for the simulated Interferometer
         instance.
 
         Parameters
         ----------
-        dm : Object
-            An instance of the deformable mirror to display it's surface.
-        update_interval : float
-            Time interval in milliseconds between updates.
-        with_profiles : bool
-            If True, the profile of the DM actuators is
-            displayed alongside the wavefront.
+        shape2remove : np.array, optional
+            Zernike modes to be removed from the wavefront.
+        **kwargs : dict, optional
+            Additional keyword arguments for customization.
 
         Returns
         -------
@@ -41,11 +47,12 @@ class Interferometer:
             Animation object of the live-view animation (needed to keep the plot
             alive).
         """
+        self._fps = framerate
         if shape2remove is not None:
             self.shapeRemoval(shape2remove)
         global _anim
-        update_interval: int = 250
         cmap = kwargs.get("cmap", "gray")
+
         self._live = True
         self._dm._live = True
 
@@ -54,15 +61,15 @@ class Interferometer:
         fig, ax = _plt.subplots(figsize=(7, 7.5))
         fig.subplots_adjust(top=0.9, bottom=0.1, left=0.05, right=0.95)
         fig.canvas.manager.set_window_title(f"Live View - Alpao DM {self._dm.nActs}")
-        simg = self._dm._wavefront(shape2remove)
+        simg = self._dm._wavefront(zernike=shape2remove, surf=self._surf, noisy=self._noisy)
         if self.full_frame:
             simg = self.intoFullFrame(simg)
         im = ax.imshow(simg, cmap=cmap)
         ax.axis("off")
         fig.colorbar(im, ax=ax, orientation="horizontal", pad=0.05, shrink=0.9)
         pv_txt = fig.text(0.5, 0.1, "", ha="center", va="center", fontsize=15)
-        shape_txt = fig.text(0.5, .925, "", ha="center", va="center", fontsize=15)
-        #fig.tight_layout()
+        shape_txt = fig.text(0.5, 0.925, "", ha="center", va="center", fontsize=15)
+        fps_txt = fig.text(0.5, 0.1, "", ha="center", va="center", fontsize=15)
 
         # Closing Event
         def on_close(event):
@@ -73,31 +80,41 @@ class Interferometer:
 
         # Update Event
         def update(frame):
-            new_img = self._dm._wavefront(self.shapesRemoved)
+            new_img = self._dm._wavefront(
+                zernike=self.shapesRemoved, surf=self._surf, noisy=self._noisy
+            )
             if self.full_frame:
                 new_img = self.intoFullFrame(new_img)
-            im.set_clim(vmin=new_img.min(), vmax=new_img.max())  # to no have blank plot
+            if not self._surf:
+                fps_txt.set_text(f"FPS: {framerate:.1f}")
+                pv_txt.set_text("")
+                shape_txt.set_text("")
+            else:
+                pv = (_np.max(new_img) - _np.min(new_img)) * 1e6
+                rms = _geo.rms(new_img) * 1e6
+                pv_txt.set_text(
+                    r"PV={:.3f} $\mu m$".format(pv)
+                    + " " * 10
+                    + r"RMS={:.5f} $\mu m$".format(rms)
+                )
+                stext = (
+                    f"Removing Zernike modes {self.shapesRemoved}"
+                    if self.shapesRemoved is not None
+                    else ""
+                )
+                shape_txt.set_text(stext)
+                fps_txt.set_text("")
+            im.set_clim(
+                vmin=new_img.min(), vmax=new_img.max()
+            )  # to not have blank plot
             im.set_data(new_img)
-            pv = (_np.max(new_img) - _np.min(new_img)) * 1e6
-            rms = _geo.rms(new_img) * 1e6
-            pv_txt.set_text(
-                r"PV={:.3f} $\mu m$".format(pv)
-                + " " * 10
-                + r"RMS={:.5f} $\mu m$".format(rms)
-            )
-            stext = (
-                f"Removing Zernike modes {self.shapesRemoved}"
-                if self.shapesRemoved is not None
-                else ""
-            )
-            shape_txt.set_text(stext)
             return (im,)
 
         # Create and hold a reference to the animation.
         self._anim = _FuncAnimation(
             fig,
             func=update,
-            interval=update_interval,
+            interval=(1000/framerate),
             blit=False,
             cache_frame_data=False,
         )
@@ -132,6 +149,11 @@ class Interferometer:
             fimage = self.intoFullFrame(fimage)
         if self.shapesRemoved is not None:
             fimage = zern.removeZernike(fimage, self.shapesRemoved)
+        if self._freeze:
+            if self._live:
+                self._surf = True
+                _plt.pause(1)
+                self._surf = False
         return fimage
 
     def intoFullFrame(self, img=None):
@@ -153,16 +175,19 @@ class Interferometer:
             return
         params = self.getCameraSettings()
         ocentre = (params["Width"] // 2 - 1, params["Height"] // 2 - 1)
-        ncentre = (self._fullWidth // 2 - 1, self._fullHeight // 2 - 1)
+        ncentre = (self._fW // 2 - 1, self._fH // 2 - 1)
         offset = (ncentre[0] - ocentre[0], ncentre[1] - ocentre[1])
         newidx = (self._dm._idx[0] + offset[0], self._dm._idx[1] + offset[1])
-        full_frame = _np.zeros((self._fullWidth, self._fullHeight))
+        full_frame = _np.zeros((self._fW, self._fH))
         full_frame[newidx] = img.compressed()
         new_mask = full_frame == 0
         full_frame = _np.ma.masked_array(full_frame, mask=new_mask)
         return full_frame
 
-    def shapeRemoval(self, modes):
+
+    #--------------------------------------------------------------------------
+    # Series of functions to control the behaviour of the live interferometer
+    def toggleShapeRemoval(self, modes):
         """
         Removes the acquired shape by the define Zernike modes.
 
@@ -172,6 +197,59 @@ class Interferometer:
             Modes to be filtered out.
         """
         self.shapesRemoved = modes
+
+
+    def toggleSurfaceView(self):
+        """
+        Continuously acquires the phase map of the interferometer.
+
+        In reality, instead of the fringes, it will show the surface
+        shape acquired of the dm.
+        """
+        self._surf = not self._surf
+
+
+    def toggleAcquisitionLiveFreeze(self):
+        """
+        Freezes the live wavefront when acquiring, to show the
+        measured surface.
+        """
+        self._freeze = not self._freeze
+
+
+    def toggleLiveNoise(self):
+        """
+        Adds noise to the live wavefront.
+        """
+        self._noisy = not self._noisy
+
+
+    def live_info(self):
+        """
+        Prints the current state of the interferometer.
+
+        Returns
+        -------
+        dict
+            Current state of the live interferometer.
+        """
+        params = self.getCameraSettings()
+        state = f"""
+{self.model}
+--------------------------
+Full Frame Size    : {self._fW}x{self._fH}
+Actual Frame Size  : {params['Width']}x{params['Height']}
+Offsets            : ({params['x-offset']}, {params['y-offset']})
+Framerate          : {self._fps:.2f} Hz
+
+Live Interferometer Info:
+--------------------------
+Shape Removal      : {self.shapesRemoved}
+Surface View       : {self._surf}
+Freeze on Acqu.    : {self._freeze}
+Noise              : {self._noisy}"""
+        print(state)
+    #==========================================================================
 
     def getCameraSettings(self):
         """
