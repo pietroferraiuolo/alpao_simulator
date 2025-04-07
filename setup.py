@@ -27,6 +27,7 @@ def parse_requirements(filename):
 
 # Arguments
 # ---------
+# '-88'  : initializes Alpao DM 88
 # '-97'  : initializes Alpao DM 97
 # '-277' : initializes Alpao DM 277
 # '-468' : initializes Alpao DM 468
