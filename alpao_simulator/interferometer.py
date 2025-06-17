@@ -126,7 +126,7 @@ class Interferometer:
 
         return fig, self._anim
 
-    def acquire_phasemap(self, nframes: int = 1, rebin=1):
+    def acquire_map(self, nframes: int = 1, rebin=1):
         """
         Acquires the phase map of the interferometer.
 

@@ -103,7 +103,7 @@ class AlpaoDm(BaseDeformableMirror):
                 self.set_shape(cmd, modal=modal)
                 if interf is not None:
                     time.sleep(delay)
-                    img = interf.acquire_phasemap(rebin=rebin)
+                    img = interf.acquire_map(rebin=rebin)
                     path = os.path.join(datafold, f"image_{i:05d}.fits")
                     osu.save_fits(path, img)
         self.set_shape(s)
